@@ -123,21 +123,21 @@ jobs:
         run: |
           go-junit-report -set-exit-code -in build/cpackgettests-${{ matrix.goos }}-amd64.txt -iocopy -out build/cpackget-testreport-${{ matrix.goos }}-amd64.xml
  
-      - name: Publish coverage report to Code Climate
-        if: ${{ startsWith(matrix.runs-on, 'ubuntu') && (github.workflow != 'Release') }}
-        uses: paambaati/codeclimate-action@v5.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
-        with:
-          debug: true
-          coverageLocations: ./cover.out:gocov
-          prefix: github.com/open-cmsis-pack/cpackget
+      # - name: Publish coverage report to Code Climate
+      #   if: ${{ startsWith(matrix.runs-on, 'ubuntu') && (github.workflow != 'Release') }}
+      #   uses: paambaati/codeclimate-action@v5.0.0
+      #   env:
+      #     CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+      #   with:
+      #     debug: true
+      #     coverageLocations: ./cover.out:gocov
+      #     prefix: github.com/open-cmsis-pack/cpackget
 
       - name: Archive unit test results
-        uses: actions/upload-artifact@v3.1.3
+        uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: ./build/cpackget-testreport-*.xml
+          name: test-results-${{ matrix.goos }}-amd64
+          path: ./build/cpackget-testreport-${{ matrix.goos }}-amd64.xml
           if-no-files-found: error
 
   test-linux-arm64:
@@ -185,9 +185,8 @@ jobs:
           go-junit-report -set-exit-code -in ${PWD}/artifacts/cpackgettests-linux-arm64.txt -iocopy -out ./cpackget-testreport-linux-arm64.xml
   
       - name: Archive unit test results
-        uses: actions/upload-artifact@v3.1.3
+        uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-linux-arm64
           path: ./cpackget-testreport-linux-arm64.xml
           if-no-files-found: error
-
