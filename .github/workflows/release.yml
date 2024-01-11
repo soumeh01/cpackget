@@ -24,6 +24,7 @@ jobs:
         with:
           pattern: test-results-*
           path: testreport/
+          merge-multiple: true
 
       - name: Zip test reports
         run: zip -r testreport.zip testreport
