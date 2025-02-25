@@ -193,10 +193,15 @@ jobs:
           egress-policy: audit
 
       - name: Check out repository code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
+
+      - name: Install QEMU (for Linux-Arm64)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
 
       - name: Install Go
-        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
@@ -204,58 +209,31 @@ jobs:
             **/go.mod
             **/go.sum
 
-      - name: Install qemu (for Linux-Arm64)
-        if: ${{ startsWith(runner.os, 'Linux') }}
-        run: |
-          sudo apt update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            qemu-user-binfmt
-
       - name: Install go-junit-report
-        if: always()
-        run: go install github.com/jstemmer/go-junit-report/v2@14d61e6e75e3f3c74551d757ad936e8e88014464 # v2.1.0
-    
-      - name: Unit testing (for Linux-Arm64)
+        run: go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: Docker run
         run: |
-          mkdir -p build
-          GOOS=linux GOARCH=arm64 go test -v ./... > build/cpackgettests-linux-arm64.txt
+          docker run \
+            --rm \
+            -v $(pwd):/${{ github.workspace }} \
+            --platform linux/arm64 \
+            golang:1.22.5 \
+            ls -la
+      # bash -c "mkdir -p build && go test -v ./... > tee build/cpackgettests-linux-arm64.txt"
 
-      # - name: Unit testing
-      #   uses: uraimo/run-on-arch-action@ac33288c3728ca72563c97b8b88dda5a65a84448 # v2
-      #   with:
-      #     arch: aarch64
-      #     distro: ubuntu_latest
-      #     env: |
-      #       GIT_DISCOVERY_ACROSS_FILESYSTEM: 1
-      #     install: |
-      #       apt-get update -qq -y
-      #       apt-get install -qq -y software-properties-common git make
-      #       add-apt-repository -y ppa:longsleep/golang-backports
-      #       apt-get update -qq -y
-      #       apt-get install -qq -y golang-1.22
-      #     setup: |
-      #       mkdir -p "${PWD}/artifacts"
-      #     dockerRunArgs: |
-      #       --volume "${PWD}/artifacts:/artifacts"
-      #     run: |
-      #       export PATH=$PATH:/usr/lib/go-1.22/bin
-      #       git clone --depth 1 ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
-      #       cd cpackget
-      #       git fetch --depth 1 origin ${GITHUB_REF}
-      #       git checkout FETCH_HEAD
-      #       mkdir -p build
-      #       make test > build/cpackgettests-linux-arm64.txt
-      #       cp build/cpackgettests-linux-arm64.txt "/artifacts/cpackgettests-linux-arm64.txt"
+      # - name: Run Unit Tests (for Linux-Arm64)
+      #   run: |
+      #     mkdir -p build
+      #     GOOS=linux GOARCH=arm64 go test -v ./... | tee build/cpackgettests-linux-arm64.txt
 
-      - name: Generate JUnit test report
+      - name: Generate JUnit Test Report
         if: always()
         run: |
           go-junit-report -set-exit-code -in build/cpackgettests-linux-arm64.txt -iocopy -out build/cpackget-testreport-linux-arm64.xml
-  
-      - name: Archive unit test results
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+
+      - name: Archive Unit Test Results
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-linux-arm64
           path: build/cpackget-testreport-linux-arm64.xml
